@@ -53,27 +53,25 @@ print_summary <- function(d) {
   cat("  - Newest : " %P% format_timestamp(max(d$created_at)) %P% "\n")
   cat("  - Oldest : " %P% format_timestamp(min(d$created_at)) %P% "\n")
 }
+mid <- NULL
+sid <- "1109293824055095296"
 
 for (i in seq_len(100)) {
-  if (i > 1) {
-    ## sleep if necessary
-    s <- secs_to_reset()
-    if (s > 0) {
-      tfse::print_start("Sleeping for approx. " %P% ceiling(s / 60) %P% " mins...")
-      Sys.sleep(s + 1)
-    }
-    ## conduct a bearer-token search
-    d <- search_tweets(search_query, n = 45000, token = bearer_token(),
-      since_id = sid)
-
-    ## print out summary info
-    print_summary(d)
-
-    ## update since_id and save
-    sid <- since_id(d)
-    tfse::save_RDS(d, here::here("data",
-      "mueller-report-" %P% gsub("\\D", "", Sys.time()) %P% ".rds"))
+  ## sleep if necessary
+  s <- secs_to_reset()
+  if (s > 0) {
+    tfse::print_start("Sleeping for approx. " %P% ceiling(s / 60) %P% " mins...")
+    Sys.sleep(s + 1)
   }
+  ## conduct a bearer-token search
+  d <- search_tweets(search_query, n = 45000, token = bearer_token(),
+    since_id = sid, max_id = mid)
+
+  ## print out summary info
+  print_summary(d)
+  tfse::save_RDS(d, here::here("data",
+    "mueller-report-" %P% gsub("\\D", "", Sys.time()) %P% ".rds"))
+
   ## if 40k+ are collected, keep searching for older
   if (nrow(d) >= 40000) {
     while (nrow(d) >= 40000) {
@@ -91,7 +89,7 @@ for (i in seq_len(100)) {
 
       ## conduct follow up search
       d <- search_tweets(search_query, n = 45000, token = bearer_token(),
-        max_id = mid, since_id = sid)
+        max_id = mid)
 
       ## print and save
       print_summary(d)
@@ -99,4 +97,7 @@ for (i in seq_len(100)) {
         "mueller-report-" %P% gsub("\\D", "", Sys.time()) %P% ".rds"))
     }
   }
+  ## update since_id and save
+  sid <- since_id(d)
+  mid <- NULL
 }
